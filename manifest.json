@@ -12,8 +12,8 @@
     "https://*.firebaseio.com/*"
   ],
   "icons": {
-    "16":  "icon.png",
-    "48":  "icon.png",
+    "16": "icon.png",
+    "48": "icon.png",
     "128": "icon.png"
   },
   "action": {
@@ -22,8 +22,12 @@
   },
   "content_scripts": [
     {
-      "matches": ["*://*.tango.me/*"],
-      "js": ["content.js"],
+      "matches": [
+        "*://*.tango.me/*"
+      ],
+      "js": [
+        "content.js"
+      ],
       "run_at": "document_idle"
     }
   ],
@@ -33,7 +37,10 @@
         "audios/coin.mp3",
         "audios/special.mp3"
       ],
-      "matches": ["*://*.tango.me/*"]
+      "matches": [
+        "*://*.tango.me/*"
+      ]
     }
-  ]
+  ],
+  "update_url": "https://zeldris96hn-tech.github.io/tanghost/update.xml"
 }
