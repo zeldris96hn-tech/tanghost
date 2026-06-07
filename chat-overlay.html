@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>TanGhost Chat Overlay</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Orbitron:wght@700&family=Rajdhani:wght@600&family=Bangers&family=Fredoka+One&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: transparent;
+    overflow: hidden;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 10px;
+  }
+
+  body.pos-top {
+    justify-content: flex-start;
+  }
+
+  #chat-container {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+  }
+
+  body.pos-top #chat-container {
+    flex-direction: column;
+  }
+
+  /* ── Animaciones ── */
+  @keyframes slideInBottom {
+    from { opacity:0; transform:translateY(12px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+  @keyframes slideInTop {
+    from { opacity:0; transform:translateY(-12px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+  @keyframes fadeOut {
+    from { opacity:1; }
+    to   { opacity:0; }
+  }
+
+  .msg { animation: slideInBottom 0.25s ease-out; }
+  body.pos-top .msg { animation: slideInTop 0.25s ease-out; }
+  .msg.removing { animation: fadeOut 0.5s ease-out forwards; }
+
+  /* ── Burbuja base ── */
+  .bubble {
+    border-radius: 10px;
+    padding: 7px 12px;
+    word-break: break-word;
+    line-height: 1.4;
+    border-left: 3px solid #fff;
+    max-width: 100%;
+  }
+  .username {
+    font-weight: 700;
+    margin-bottom: 2px;
+  }
+  .text {
+    color: #f0f0f0;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+  }
+
+  /* ══════════════════════════════════════
+     TEMAS
+  ══════════════════════════════════════ */
+
+  /* dark (defecto) */
+  body.theme-dark .bubble {
+    background: rgba(0,0,0,var(--bg-opacity,0.72));
+    backdrop-filter: blur(4px);
+  }
+
+  /* neon */
+  body.theme-neon .bubble {
+    background: rgba(20,0,40,var(--bg-opacity,0.82));
+    border-left-color: #bf00ff !important;
+    box-shadow: 0 0 8px rgba(191,0,255,0.4), inset 0 0 20px rgba(191,0,255,0.05);
+  }
+  body.theme-neon .username { text-shadow: 0 0 8px currentColor; }
+
+  /* fire */
+  body.theme-fire .bubble {
+    background: rgba(40,10,0,var(--bg-opacity,0.82));
+    border-left-color: #ff6a00 !important;
+    box-shadow: 0 0 8px rgba(255,100,0,0.35);
+  }
+  body.theme-fire .text { color: #ffe0c0; }
+
+  /* ice */
+  body.theme-ice .bubble {
+    background: rgba(0,20,40,var(--bg-opacity,0.80));
+    border-left-color: #00cfff !important;
+    box-shadow: 0 0 8px rgba(0,200,255,0.3);
+  }
+  body.theme-ice .text { color: #d0f4ff; }
+
+  /* nature */
+  body.theme-nature .bubble {
+    background: rgba(5,25,5,var(--bg-opacity,0.80));
+    border-left-color: #4caf50 !important;
+    box-shadow: 0 0 8px rgba(60,180,60,0.3);
+  }
+  body.theme-nature .text { color: #d8f5d8; }
+
+  /* minimal */
+  body.theme-minimal .bubble {
+    background: rgba(255,255,255,var(--bg-opacity,0.12));
+    border-left: none;
+    border-radius: 6px;
+    backdrop-filter: blur(6px);
+  }
+  body.theme-minimal .text { color: #ffffff; }
+  body.theme-minimal .username { opacity: 0.85; }
+
+</style>
+</head>
+<body class="theme-dark">
+
+<div id="chat-container"></div>
+
+<script>
+  // ── Paleta de colores para usuarios ───────────────────────────
+  const PALETTE = [
+    '#FF6B6B','#FFA07A','#FFD700','#7CFC00',
+    '#00CED1','#1E90FF','#DA70D6','#FF69B4',
+    '#F4A460','#98FB98','#87CEEB','#DDA0DD',
+    '#FF8C00','#00FA9A','#6495ED','#FF1493',
+  ];
+  function colorForUser(name) {
+    let h = 0;
+    for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+    return PALETTE[h % PALETTE.length];
+  }
+
+  // ── Config activa (se actualiza con cada mensaje) ──────────────
+  let cfg = {
+    chatTheme:      'dark',
+    chatPosition:   'bottom',
+    chatTime:       12000,
+    chatMax:        12,
+    chatFontFamily: 'Segoe UI, Arial, sans-serif',
+    chatFontSize:   13,
+    chatWidth:      400,
+    chatOpacity:    72,
+  };
+
+  function applyConfig(raw) {
+    if (!raw) return;
+    cfg.chatTheme      = raw.chatTheme      || cfg.chatTheme;
+    cfg.chatPosition   = raw.chatPosition   || cfg.chatPosition;
+    cfg.chatTime       = (raw.chatTime   || 12) * 1000;
+    cfg.chatMax        = raw.chatMax        || cfg.chatMax;
+    cfg.chatFontFamily = raw.chatFontFamily || cfg.chatFontFamily;
+    cfg.chatFontSize   = raw.chatFontSize   || cfg.chatFontSize;
+    cfg.chatWidth      = raw.chatWidth      || cfg.chatWidth;
+    cfg.chatOpacity    = raw.chatOpacity    != null ? raw.chatOpacity : cfg.chatOpacity;
+
+    // Aplicar al DOM
+    document.body.className = 'theme-' + cfg.chatTheme +
+                              (cfg.chatPosition === 'top' ? ' pos-top' : '');
+    document.body.style.setProperty('--bg-opacity', (cfg.chatOpacity / 100).toFixed(2));
+    document.body.style.width  = cfg.chatWidth + 'px';
+    document.getElementById('chat-container').style.fontFamily = cfg.chatFontFamily;
+    document.getElementById('chat-container').style.fontSize   = cfg.chatFontSize + 'px';
+  }
+
+  // ── DOM ────────────────────────────────────────────────────────
+  const container = document.getElementById('chat-container');
+  const msgRefs   = [];
+
+  function addMessage(username, message) {
+    const color = colorForUser(username);
+    const div   = document.createElement('div');
+    div.className = 'msg';
+
+    div.innerHTML = `<div class="bubble" style="border-left-color:${color}">
+      <div class="username" style="color:${color};font-size:${Math.round(cfg.chatFontSize*0.92)}px">${esc(username)}</div>
+      <div class="text">${esc(message)}</div>
+    </div>`;
+
+    if (cfg.chatPosition === 'top') {
+      container.insertBefore(div, container.firstChild);
+    } else {
+      container.appendChild(div);
+    }
+    msgRefs.push(div);
+
+    // Límite de mensajes visibles
+    while (msgRefs.length > cfg.chatMax) {
+      const old = msgRefs.shift();
+      removeMsgEl(old);
+    }
+
+    // Auto-expirar
+    if (cfg.chatTime > 0) {
+      const t = setTimeout(() => removeMsgEl(div), cfg.chatTime);
+      div._expireTimer = t;
+    }
+  }
+
+  function removeMsgEl(el) {
+    clearTimeout(el._expireTimer);
+    el.classList.add('removing');
+    setTimeout(() => {
+      el.remove();
+      const idx = msgRefs.indexOf(el);
+      if (idx !== -1) msgRefs.splice(idx, 1);
+    }, 500);
+  }
+
+  function esc(s) {
+    return String(s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ── WebSocket ──────────────────────────────────────────────────
+  const WS_URL    = 'ws://localhost:7332/recv';
+  const RECONNECT = 4000;
+  let ws = null;
+
+  function connect() {
+    ws = new WebSocket(WS_URL);
+
+    ws.onopen = () => {};
+
+    ws.onmessage = (evt) => {
+      try {
+        const data = JSON.parse(evt.data);
+        if (data.type === 'tg_chat' && data.username) {
+          if (data.cfg) applyConfig(data.cfg);
+          addMessage(data.username, data.message || '');
+        }
+      } catch(e) {}
+    };
+
+    ws.onerror = () => {};
+
+    ws.onclose = () => { setTimeout(connect, RECONNECT); };
+  }
+
+  connect();
+</script>
+</body>
+</html>

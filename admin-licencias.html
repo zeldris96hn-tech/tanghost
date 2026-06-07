@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>TanGhost — Admin de Licencias</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600&family=Share+Tech+Mono&display=swap');
+
+  :root {
+    --cyan:   #00ffc8;
+    --purple: #7b2fff;
+    --red:    #ff3860;
+    --gold:   #ffd700;
+    --bg:     #0a0a0f;
+    --bg2:    #0d1117;
+    --border: rgba(0,255,200,0.15);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--bg);
+    color: #e0e0ff;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 14px;
+    min-height: 100vh;
+  }
+
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(0,255,200,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,255,200,0.025) 1px, transparent 1px);
+    background-size: 28px 28px;
+    pointer-events: none; z-index: 0;
+  }
+
+  .app { position: relative; z-index: 1; max-width: 900px; margin: 0 auto; padding: 24px 20px; }
+
+  /* ── HEADER ── */
+  .header {
+    display: flex; align-items: center; gap: 14px;
+    border-bottom: 2px solid var(--cyan);
+    padding-bottom: 18px; margin-bottom: 28px;
+  }
+  .header-icon { font-size: 36px; filter: drop-shadow(0 0 12px var(--cyan)); }
+  .header-title {
+    font-family: 'Orbitron', monospace; font-size: 22px; font-weight: 900;
+    background: linear-gradient(90deg, var(--cyan), var(--purple));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    letter-spacing: 3px;
+  }
+  .header-sub { font-size: 11px; color: #555577; font-family: 'Orbitron', monospace; letter-spacing: 1px; margin-top: 3px; }
+
+  /* ── SETUP ── */
+  #setupSection {
+    background: rgba(123,47,255,0.06);
+    border: 1px solid rgba(123,47,255,0.25);
+    border-radius: 12px;
+    padding: 20px; margin-bottom: 24px;
+  }
+  .setup-title { font-family: 'Orbitron', monospace; font-size: 10px; color: var(--purple); letter-spacing: 2px; margin-bottom: 14px; }
+  .setup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .setup-field label { font-size: 10px; color: #555577; font-family: 'Orbitron', monospace; letter-spacing: 1px; display: block; margin-bottom: 4px; }
+  .setup-field input {
+    width: 100%;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(123,47,255,0.3);
+    border-radius: 6px;
+    color: #c0a0ff;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    padding: 8px 10px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .setup-field input:focus { border-color: var(--purple); }
+
+  /* ── CARDS ── */
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 24px; }
+
+  .card {
+    background: rgba(0,255,200,0.03);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+  }
+  .card-title {
+    font-family: 'Orbitron', monospace; font-size: 9px;
+    color: var(--purple); letter-spacing: 2px; text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+
+  /* ── FORM ELEMENTS ── */
+  .field { margin-bottom: 10px; }
+  .field label { font-size: 10px; color: #555577; font-family: 'Orbitron', monospace; letter-spacing: 1px; display: block; margin-bottom: 4px; }
+  .field input, .field select {
+    width: 100%;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(0,255,200,0.2);
+    border-radius: 6px;
+    color: #e0e0ff;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    padding: 8px 10px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .field input:focus, .field select:focus { border-color: var(--cyan); }
+  .field select option { background: #0d1117; }
+
+  /* ── BUTTONS ── */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    border-radius: 7px;
+    font-family: 'Orbitron', monospace; font-size: 10px; font-weight: 700; letter-spacing: 1px;
+    padding: 9px 16px; cursor: pointer; transition: all 0.2s;
+    border: 1px solid;
+  }
+  .btn-cyan {
+    background: rgba(0,255,200,0.1); border-color: rgba(0,255,200,0.4); color: var(--cyan);
+  }
+  .btn-cyan:hover { background: rgba(0,255,200,0.2); box-shadow: 0 0 12px rgba(0,255,200,0.2); }
+  .btn-purple {
+    background: rgba(123,47,255,0.1); border-color: rgba(123,47,255,0.4); color: #b085ff;
+  }
+  .btn-purple:hover { background: rgba(123,47,255,0.2); }
+  .btn-red {
+    background: rgba(255,56,96,0.08); border-color: rgba(255,56,96,0.3); color: var(--red);
+    font-size: 9px; padding: 5px 10px;
+  }
+  .btn-red:hover { background: rgba(255,56,96,0.18); }
+  .btn-gold {
+    background: rgba(255,215,0,0.08); border-color: rgba(255,215,0,0.3); color: var(--gold);
+    font-size: 9px; padding: 5px 10px;
+  }
+  .btn-gold:hover { background: rgba(255,215,0,0.18); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+
+  /* ── MENSAJES ── */
+  .msg {
+    font-family: 'Orbitron', monospace; font-size: 10px; letter-spacing: 1px;
+    padding: 8px 12px; border-radius: 6px; margin-top: 10px;
+    min-height: 34px; display: flex; align-items: center;
+    transition: all 0.3s;
+  }
+  .msg.ok     { background: rgba(0,255,200,0.08); border: 1px solid rgba(0,255,200,0.3); color: var(--cyan); }
+  .msg.err    { background: rgba(255,56,96,0.08);  border: 1px solid rgba(255,56,96,0.3);  color: var(--red); }
+  .msg.info   { background: rgba(123,47,255,0.08); border: 1px solid rgba(123,47,255,0.3); color: #c0a0ff; }
+  .msg.hidden { display: none; }
+
+  /* ── TABLA ── */
+  .table-wrap {
+    background: rgba(0,255,200,0.02);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .table-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+  }
+  .table-title { font-family: 'Orbitron', monospace; font-size: 9px; color: var(--purple); letter-spacing: 2px; }
+  #searchInput {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(0,255,200,0.15);
+    border-radius: 6px;
+    color: #e0e0ff;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px; padding: 6px 12px;
+    outline: none; width: 200px;
+  }
+  #searchInput:focus { border-color: var(--cyan); }
+
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    text-align: left;
+    font-family: 'Orbitron', monospace; font-size: 9px;
+    color: #555577; letter-spacing: 1px;
+    padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.05);
+    background: rgba(0,0,0,0.2);
+  }
+  td {
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+    font-family: 'Share Tech Mono', monospace; font-size: 12px;
+    vertical-align: middle;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(0,255,200,0.02); }
+
+  .serial-code {
+    color: var(--cyan); letter-spacing: 2px; cursor: pointer; font-size: 11px;
+  }
+  .serial-code:hover { text-decoration: underline; }
+
+  .badge {
+    display: inline-block;
+    font-family: 'Orbitron', monospace; font-size: 8px; font-weight: 700;
+    letter-spacing: 1px; padding: 2px 7px; border-radius: 4px;
+  }
+  .badge-7dias    { background: rgba(255,56,96,0.08);  border: 1px solid rgba(255,56,96,0.3);   color: #ff7096; }
+  .badge-1mes     { background: rgba(123,47,255,0.1);  border: 1px solid rgba(123,47,255,0.35); color: #c0a0ff; }
+  .badge-2meses   { background: rgba(100,60,255,0.1);  border: 1px solid rgba(100,60,255,0.35); color: #a090ff; }
+  .badge-3meses   { background: rgba(0,150,255,0.1);   border: 1px solid rgba(0,150,255,0.35);  color: #60c0ff; }
+  .badge-4meses   { background: rgba(0,200,200,0.1);   border: 1px solid rgba(0,200,200,0.35);  color: #00d0d0; }
+  .badge-5meses   { background: rgba(0,255,150,0.08);  border: 1px solid rgba(0,255,150,0.3);   color: #00ee99; }
+  .badge-6meses   { background: rgba(0,255,200,0.08);  border: 1px solid rgba(0,255,200,0.3);   color: var(--cyan); }
+  .badge-anual    { background: rgba(255,215,0,0.1);   border: 1px solid rgba(255,215,0,0.35);  color: var(--gold); }
+  .badge-pro      { background: rgba(0,255,200,0.1);   border: 1px solid rgba(0,255,200,0.3);  color: var(--cyan); }
+  .badge-lifetime { background: rgba(255,215,0,0.1);   border: 1px solid rgba(255,215,0,0.3);  color: var(--gold); }
+  .badge-active   { background: rgba(0,255,200,0.08);  border: 1px solid rgba(0,255,200,0.2);  color: var(--cyan); }
+  .badge-inactive { background: rgba(255,56,96,0.08);  border: 1px solid rgba(255,56,96,0.2);  color: var(--red); }
+
+  #loadingRow td, #emptyRow td {
+    text-align: center; padding: 28px;
+    color: #333355; font-family: 'Orbitron', monospace; font-size: 10px; letter-spacing: 1px;
+  }
+
+  /* ── LOADER ── */
+  .spinner {
+    width: 16px; height: 16px;
+    border: 2px solid rgba(0,255,200,0.2);
+    border-top-color: var(--cyan);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    display: inline-block;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-4px)} }
+
+  .footer {
+    text-align: center; margin-top: 32px;
+    font-family: 'Orbitron', monospace; font-size: 9px; color: #222233; letter-spacing: 2px;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ── HEADER ── -->
+  <div class="header">
+    <span class="header-icon">👻</span>
+    <div>
+      <div class="header-title">TANGHOST</div>
+      <div class="header-sub">// PANEL DE ADMINISTRACIÓN DE LICENCIAS</div>
+    </div>
+  </div>
+
+  <!-- ── CONFIGURACIÓN FIREBASE ── -->
+  <div id="setupSection">
+    <div class="setup-title">// Configuración Firebase (solo se guarda en esta página)</div>
+    <div class="setup-grid">
+      <div class="setup-field"><label>PROJECT ID</label><input id="cfgProjectId" placeholder="mi-proyecto-firebase" value="tanghost-ea320"></div>
+      <div class="setup-field"><label>API KEY</label><input id="cfgApiKey" placeholder="AIzaSy..." value="AIzaSyDguNfAFxO8nb1eYlY4ArNZeStxkuQDG64"></div>
+    </div>
+    <div class="btn-row" style="margin-top:12px;">
+      <button class="btn btn-purple" onclick="saveConfig()">💾 Guardar configuración</button>
+      <span id="cfgMsg" style="font-family:'Orbitron',monospace;font-size:10px;color:var(--cyan);letter-spacing:1px;align-self:center;"></span>
+    </div>
+  </div>
+
+  <!-- ── GRID ── -->
+  <div class="grid">
+
+    <!-- GENERAR SERIAL -->
+    <div class="card">
+      <div class="card-title">// Generar nuevo serial</div>
+
+      <div class="field">
+        <label>Plan</label>
+        <select id="genPlan">
+          <option value="7dias">🆓 Prueba 7 días</option>
+          <option value="1mes">📅 1 Mes</option>
+          <option value="2meses">📅 2 Meses</option>
+          <option value="3meses">📅 3 Meses</option>
+          <option value="4meses">📅 4 Meses</option>
+          <option value="5meses">📅 5 Meses</option>
+          <option value="6meses">📅 6 Meses</option>
+          <option value="anual">⭐ 1 Año</option>
+          <option value="lifetime">🏆 Lifetime (sin vencimiento)</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Máx. dispositivos</label>
+        <input id="genMaxDevices" type="number" value="1" min="1" max="10">
+      </div>
+
+      <div class="field">
+        <label>Propietario / Nota</label>
+        <input id="genOwner" type="text" placeholder="Nombre del cliente">
+      </div>
+
+      <div class="field" id="expiresField">
+        <label>Fecha de vencimiento (calculada automáticamente)</label>
+        <div id="expiresPreview" style="font-family:'Share Tech Mono',monospace;font-size:13px;color:var(--cyan);padding:8px 10px;background:rgba(0,0,0,0.3);border:1px solid rgba(0,255,200,0.15);border-radius:6px;letter-spacing:1px;">—</div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-cyan" onclick="generateSerial()" id="genBtn">⚡ Generar serial</button>
+      </div>
+      <div id="genMsg" class="msg hidden"></div>
+
+      <div id="generatedSerial" style="display:none;margin-top:12px;">
+        <div style="font-family:'Orbitron',monospace;font-size:9px;color:#555577;letter-spacing:1px;margin-bottom:6px;">SERIAL GENERADO:</div>
+        <div id="genSerialDisplay" style="font-family:'Share Tech Mono',monospace;font-size:16px;color:var(--cyan);letter-spacing:3px;cursor:pointer;padding:10px;background:rgba(0,255,200,0.05);border:1px solid rgba(0,255,200,0.2);border-radius:6px;text-align:center;" onclick="copySerial()" title="Clic para copiar">—</div>
+        <div style="font-size:10px;color:#333355;text-align:center;margin-top:4px;">Clic para copiar</div>
+      </div>
+    </div>
+
+    <!-- BUSCAR / REVOCAR SERIAL -->
+    <div class="card">
+      <div class="card-title">// Verificar serial</div>
+
+      <div class="field">
+        <label>Código de serial</label>
+        <input id="lookupSerial" type="text" placeholder="XXXX-XXXX-XXXX-XXXX" style="text-transform:uppercase;letter-spacing:2px;">
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-cyan" onclick="lookupSerial()">🔍 Consultar</button>
+      </div>
+      <div id="lookupMsg" class="msg hidden"></div>
+
+      <div id="lookupResult" style="display:none;margin-top:12px;font-family:'Share Tech Mono',monospace;font-size:11px;line-height:1.9;"></div>
+
+      <div id="lookupActions" style="display:none;" class="btn-row">
+        <button class="btn btn-red"  onclick="revokeSerial()">🚫 Revocar</button>
+        <button class="btn btn-gold" onclick="clearDevices()">📱 Limpiar dispositivos</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── TABLA DE LICENCIAS ── -->
+  <div class="table-wrap">
+    <div class="table-header">
+      <span class="table-title">// Todas las licencias</span>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input id="searchInput" placeholder="🔍 Buscar serial o propietario..." oninput="filterTable()">
+        <button class="btn btn-purple" onclick="loadLicenses()" style="white-space:nowrap;">↺ Recargar</button>
+      </div>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>SERIAL</th>
+          <th>PLAN</th>
+          <th>PROPIETARIO</th>
+          <th>ESTADO</th>
+          <th>DISPOSITIVOS</th>
+          <th>VENCE</th>
+          <th>ACCIONES</th>
+        </tr>
+      </thead>
+      <tbody id="licenseTableBody">
+        <tr id="loadingRow"><td colspan="7"><span class="spinner"></span> Cargando...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="footer">TANGO.ME // GHOST MODE // ADMIN PANEL</div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════
+//  CONFIGURACIÓN
+// ════════════════════════════════════════════════
+// ════════════════════════════════════════════════
+//  PLANES — definiciones centralizadas
+// ════════════════════════════════════════════════
+const PLANES = {
+    "7dias":   { label: "7 DÍAS",   dias: 7,    badge: "badge-7dias"  },
+    "1mes":    { label: "1 MES",    dias: 30,   badge: "badge-1mes"   },
+    "2meses":  { label: "2 MESES",  dias: 60,   badge: "badge-2meses" },
+    "3meses":  { label: "3 MESES",  dias: 90,   badge: "badge-3meses" },
+    "4meses":  { label: "4 MESES",  dias: 120,  badge: "badge-4meses" },
+    "5meses":  { label: "5 MESES",  dias: 150,  badge: "badge-5meses" },
+    "6meses":  { label: "6 MESES",  dias: 180,  badge: "badge-6meses" },
+    "anual":   { label: "1 AÑO",    dias: 365,  badge: "badge-anual"  },
+    "lifetime":{ label: "LIFETIME", dias: null, badge: "badge-lifetime"},
+};
+const PLAN_LABELS     = Object.fromEntries(Object.entries(PLANES).map(([k,v]) => [k, v.label]));
+const PLAN_BADGE_CLASS= Object.fromEntries(Object.entries(PLANES).map(([k,v]) => [k, v.badge]));
+
+/** Calcula la fecha de vencimiento según el plan */
+function calcExpiry(plan) {
+    const p = PLANES[plan];
+    if (!p || p.dias === null) return null; // lifetime
+    const d = new Date();
+    d.setDate(d.getDate() + p.dias);
+    d.setHours(23, 59, 59, 0);
+    return d;
+}
+
+/** Actualiza el preview de fecha en el formulario */
+function updateExpiryPreview() {
+    const plan = document.getElementById("genPlan").value;
+    const preview = document.getElementById("expiresPreview");
+    if (!preview) return;
+    const exp = calcExpiry(plan);
+    if (!exp) {
+        preview.textContent = "♾ Sin vencimiento (Lifetime)";
+        preview.style.color = "var(--gold)";
+    } else {
+        preview.textContent = exp.toLocaleDateString("es", { weekday:"long", year:"numeric", month:"long", day:"numeric" });
+        preview.style.color = "var(--cyan)";
+    }
+}
+
+let CFG = { projectId: "", apiKey: "" };
+let ALL_LICENSES = [];  // cache para filtrado local
+
+function saveConfig() {
+    CFG.projectId = document.getElementById("cfgProjectId").value.trim();
+    CFG.apiKey    = document.getElementById("cfgApiKey").value.trim();
+    if (!CFG.projectId || !CFG.apiKey) {
+        document.getElementById("cfgMsg").textContent = "⚠ Completa ambos campos.";
+        return;
+    }
+    localStorage.setItem("tg_admin_cfg", JSON.stringify(CFG));
+    document.getElementById("cfgMsg").textContent = "✓ Guardado";
+    setTimeout(() => document.getElementById("cfgMsg").textContent = "", 2000);
+    loadLicenses();
+}
+
+function loadConfig() {
+    try {
+        const c = JSON.parse(localStorage.getItem("tg_admin_cfg") || "{}");
+        if (c.projectId) {
+            CFG = c;
+            document.getElementById("cfgProjectId").value = c.projectId;
+            document.getElementById("cfgApiKey").value    = c.apiKey;
+        }
+    } catch(e) {}
+}
+
+function fsBase() {
+    return `https://firestore.googleapis.com/v1/projects/${CFG.projectId}/databases/(default)/documents`;
+}
+
+// ════════════════════════════════════════════════
+//  UTILS FIRESTORE REST
+// ════════════════════════════════════════════════
+function fsVal(f) {
+    if (!f) return null;
+    if (f.stringValue  !== undefined) return f.stringValue;
+    if (f.booleanValue !== undefined) return f.booleanValue;
+    if (f.integerValue !== undefined) return parseInt(f.integerValue);
+    if (f.timestampValue !== undefined) return new Date(f.timestampValue);
+    if (f.nullValue  !== undefined) return null;
+    if (f.arrayValue) return (f.arrayValue.values || []).map(fsVal);
+    return null;
+}
+
+function parseDoc(doc) {
+    if (!doc?.fields) return null;
+    const out = { _id: doc.name?.split("/").pop() };
+    for (const [k, v] of Object.entries(doc.fields)) out[k] = fsVal(v);
+    return out;
+}
+
+function toFsField(v) {
+    if (v === null || v === undefined) return { nullValue: null };
+    if (typeof v === "boolean") return { booleanValue: v };
+    if (typeof v === "number")  return { integerValue: String(v) };
+    if (v instanceof Date)      return { timestampValue: v.toISOString() };
+    if (Array.isArray(v))       return { arrayValue: { values: v.map(s => ({ stringValue: String(s) })) } };
+    return { stringValue: String(v) };
+}
+
+async function fsSet(serial, data) {
+    const url = `${fsBase()}/licenses/${encodeURIComponent(serial)}?key=${CFG.apiKey}`;
+    const fields = {};
+    for (const [k, v] of Object.entries(data)) fields[k] = toFsField(v);
+    const res = await fetch(url, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fields })
+    });
+    if (!res.ok) throw new Error("Error " + res.status);
+    return res.json();
+}
+
+async function fsGet(serial) {
+    const url = `${fsBase()}/licenses/${encodeURIComponent(serial)}?key=${CFG.apiKey}`;
+    const res = await fetch(url);
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error("Error " + res.status);
+    return parseDoc(await res.json());
+}
+
+async function fsList() {
+    const url = `${fsBase()}/licenses?key=${CFG.apiKey}&pageSize=300`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("Error " + res.status);
+    const json = await res.json();
+    return (json.documents || []).map(parseDoc).filter(Boolean);
+}
+
+// ════════════════════════════════════════════════
+//  GENERAR SERIAL
+// ════════════════════════════════════════════════
+function generateCode() {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // sin I, O, 0, 1
+    const seg = () => Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+    return `${seg()}-${seg()}-${seg()}-${seg()}`;
+}
+
+async function generateSerial() {
+    if (!CFG.projectId || !CFG.apiKey) { showMsg("genMsg", "Configura Firebase primero.", "err"); return; }
+    const btn = document.getElementById("genBtn");
+    btn.disabled = true;
+    showMsg("genMsg", "Creando serial...", "info");
+
+    const serial  = generateCode();
+    const plan    = document.getElementById("genPlan").value;
+    const maxDev  = parseInt(document.getElementById("genMaxDevices").value) || 1;
+    const owner   = document.getElementById("genOwner").value.trim();
+    const expiresAt = calcExpiry(plan);
+
+    const data = {
+        active:      true,
+        used:        false,
+        plan,
+        maxDevices:  maxDev,
+        owner:       owner || "",
+        activatedAt: null,
+        expiresAt:   expiresAt ? expiresAt.toISOString() : null,
+        devices:     [],
+        notes:       "",
+        createdAt:   new Date().toISOString(),
+    };
+
+    try {
+        await fsSet(serial, data);
+        document.getElementById("genSerialDisplay").textContent = serial;
+        document.getElementById("generatedSerial").style.display = "block";
+        showMsg("genMsg", "✓ Serial creado correctamente.", "ok");
+        await loadLicenses();
+    } catch (e) {
+        showMsg("genMsg", "Error: " + e.message, "err");
+    }
+    btn.disabled = false;
+}
+
+function copySerial() {
+    const s = document.getElementById("genSerialDisplay").textContent;
+    navigator.clipboard.writeText(s);
+    const el = document.getElementById("genSerialDisplay");
+    const orig = el.textContent;
+    el.textContent = "✓ COPIADO";
+    setTimeout(() => el.textContent = orig, 1200);
+}
+
+// ════════════════════════════════════════════════
+//  BUSCAR / VERIFICAR SERIAL
+// ════════════════════════════════════════════════
+let currentLookupSerial = null;
+
+async function lookupSerial() {
+    const serial = document.getElementById("lookupSerial").value.trim().toUpperCase();
+    if (!serial) { showMsg("lookupMsg", "Ingresa un serial.", "err"); return; }
+    if (!CFG.projectId || !CFG.apiKey) { showMsg("lookupMsg", "Configura Firebase primero.", "err"); return; }
+
+    showMsg("lookupMsg", "Consultando...", "info");
+    document.getElementById("lookupResult").style.display = "none";
+    document.getElementById("lookupActions").style.display = "none";
+
+    try {
+        const doc = await fsGet(serial);
+        if (!doc) { showMsg("lookupMsg", "Serial no encontrado.", "err"); currentLookupSerial = null; return; }
+
+        currentLookupSerial = serial;
+        const devCount = (doc.devices || []).length;
+        const expires  = doc.expiresAt ? new Date(doc.expiresAt).toLocaleDateString("es") : "Sin vencimiento";
+        const activated= doc.activatedAt ? new Date(doc.activatedAt).toLocaleDateString("es") : "—";
+        const planLabel= PLAN_LABELS[doc.plan] || (doc.plan||"—").toUpperCase();
+
+        document.getElementById("lookupResult").innerHTML = `
+            <div><span style="color:#555577;">SERIAL:    </span> <span style="color:var(--cyan);letter-spacing:2px;">${serial}</span></div>
+            <div><span style="color:#555577;">PLAN:      </span> <span style="color:var(--gold);">${planLabel}</span></div>
+            <div><span style="color:#555577;">ESTADO:    </span> <span style="color:${doc.active ? 'var(--cyan)' : 'var(--red);'};">${doc.active ? "✓ ACTIVO" : "✗ REVOCADO"}</span></div>
+            <div><span style="color:#555577;">PROPIETARIO:</span> ${doc.owner || "—"}</div>
+            <div><span style="color:#555577;">ACTIVADO:  </span> ${activated}</div>
+            <div><span style="color:#555577;">VENCE:     </span> ${expires}</div>
+            <div><span style="color:#555577;">DISPOSITIVOS:</span> ${devCount} / ${doc.maxDevices || 1}</div>
+            ${(doc.devices||[]).length > 0 ? `<div style="color:#333355;font-size:10px;margin-top:2px;">IDs: ${doc.devices.join(", ")}</div>` : ""}
+        `;
+        document.getElementById("lookupResult").style.display = "block";
+        document.getElementById("lookupActions").style.display = "flex";
+        showMsg("lookupMsg", "✓ Encontrado.", "ok");
+    } catch (e) {
+        showMsg("lookupMsg", "Error: " + e.message, "err");
+    }
+}
+
+async function revokeSerial() {
+    if (!currentLookupSerial) return;
+    if (!confirm(`¿Revocar el serial ${currentLookupSerial}?`)) return;
+    try {
+        await fsSet(currentLookupSerial, { active: false });
+        showMsg("lookupMsg", "✓ Serial revocado.", "ok");
+        await loadLicenses();
+        await lookupSerial();
+    } catch (e) {
+        showMsg("lookupMsg", "Error: " + e.message, "err");
+    }
+}
+
+async function clearDevices() {
+    if (!currentLookupSerial) return;
+    if (!confirm(`¿Limpiar dispositivos de ${currentLookupSerial}?\nEl usuario podrá activar en dispositivos nuevos.`)) return;
+    try {
+        await fsSet(currentLookupSerial, { devices: [], used: false });
+        showMsg("lookupMsg", "✓ Dispositivos limpiados.", "ok");
+        await lookupSerial();
+    } catch (e) {
+        showMsg("lookupMsg", "Error: " + e.message, "err");
+    }
+}
+
+// ════════════════════════════════════════════════
+//  TABLA
+// ════════════════════════════════════════════════
+async function loadLicenses() {
+    if (!CFG.projectId || !CFG.apiKey) return;
+    const tbody = document.getElementById("licenseTableBody");
+    tbody.innerHTML = '<tr id="loadingRow"><td colspan="7"><span class="spinner"></span> Cargando...</td></tr>';
+    try {
+        ALL_LICENSES = await fsList();
+        renderTable(ALL_LICENSES);
+    } catch(e) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--red);font-family:'Orbitron',monospace;font-size:10px;padding:24px;">Error al cargar: ${e.message}</td></tr>`;
+    }
+}
+
+function filterTable() {
+    const q = document.getElementById("searchInput").value.toLowerCase();
+    const filtered = ALL_LICENSES.filter(l =>
+        l._id?.toLowerCase().includes(q) ||
+        (l.owner||"").toLowerCase().includes(q) ||
+        (l.plan||"").toLowerCase().includes(q)
+    );
+    renderTable(filtered);
+}
+
+function planBadge(plan) {
+    const cls = PLAN_BADGE_CLASS[plan] || "badge-1mes";
+    const label = PLAN_LABELS[plan] || (plan||"—").toUpperCase();
+    return `<span class="badge ${cls}">${label}</span>`;
+}
+
+function renderTable(licenses) {
+    const tbody = document.getElementById("licenseTableBody");
+    if (!licenses.length) {
+        tbody.innerHTML = '<tr id="emptyRow"><td colspan="7">Sin licencias registradas.</td></tr>';
+        return;
+    }
+    tbody.innerHTML = licenses.map(l => {
+        const devCount = (l.devices||[]).length;
+        const expires  = l.expiresAt ? new Date(l.expiresAt).toLocaleDateString("es") : "—";
+        const actBadge = l.active
+            ? '<span class="badge badge-active">ACTIVO</span>'
+            : '<span class="badge badge-inactive">REVOCADO</span>';
+        return `<tr>
+            <td><span class="serial-code" onclick="quickLookup('${l._id}')" title="Consultar">${l._id || "—"}</span></td>
+            <td>${planBadge(l.plan)}</td>
+            <td style="color:#c0c0e0;">${l.owner || "—"}</td>
+            <td>${actBadge}</td>
+            <td style="color:${devCount > 0 ? 'var(--cyan)' : '#333355'};">${devCount} / ${l.maxDevices||1}</td>
+            <td style="color:${l.expiresAt ? '#ff9500' : '#333355'};">${expires}</td>
+            <td>
+                <button class="btn btn-red"  onclick="quickRevoke('${l._id}')" title="Revocar">🚫</button>
+                <button class="btn btn-gold" onclick="quickClear('${l._id}')"  title="Limpiar dispositivos" style="margin-left:4px;">📱</button>
+            </td>
+        </tr>`;
+    }).join("");
+}
+
+function quickLookup(serial) {
+    document.getElementById("lookupSerial").value = serial;
+    document.querySelector(".card:nth-child(2)").scrollIntoView({ behavior: "smooth" });
+    lookupSerial();
+}
+
+async function quickRevoke(serial) {
+    if (!confirm(`¿Revocar ${serial}?`)) return;
+    try {
+        await fsSet(serial, { active: false });
+        await loadLicenses();
+    } catch(e) { alert("Error: " + e.message); }
+}
+
+async function quickClear(serial) {
+    if (!confirm(`¿Limpiar dispositivos de ${serial}?`)) return;
+    try {
+        await fsSet(serial, { devices: [], used: false });
+        await loadLicenses();
+    } catch(e) { alert("Error: " + e.message); }
+}
+
+// ════════════════════════════════════════════════
+//  HELPERS
+// ════════════════════════════════════════════════
+function showMsg(id, text, type) {
+    const el = document.getElementById(id);
+    el.textContent = text;
+    el.className = `msg ${type}`;
+    el.classList.remove("hidden");
+}
+
+// ── INIT ──
+loadConfig();
+if (CFG.projectId) loadLicenses();
+
+// Actualizar preview de fecha al cambiar plan
+document.getElementById("genPlan").addEventListener("change", updateExpiryPreview);
+updateExpiryPreview();
+</script>
+</body>
+</html>

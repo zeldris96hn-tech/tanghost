@@ -1,0 +1,39 @@
+{
+  "manifest_version": 3,
+  "name": "TanGhost",
+  "description": "TanGhost lector de chat pro",
+  "version": "19.0",
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "*://*.tango.me/*",
+    "https://firestore.googleapis.com/*",
+    "https://*.firebaseio.com/*"
+  ],
+  "icons": {
+    "16":  "icon.png",
+    "48":  "icon.png",
+    "128": "icon.png"
+  },
+  "action": {
+    "default_icon": "icon.png",
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*.tango.me/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "audios/coin.mp3",
+        "audios/special.mp3"
+      ],
+      "matches": ["*://*.tango.me/*"]
+    }
+  ]
+}

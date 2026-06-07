@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>TanGhost Pokémon Overlay</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body {
+    width: 1920px; height: 1080px;
+    background: transparent;
+    overflow: hidden;
+  }
+  .poke-actor {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    pointer-events: none;
+    will-change: transform;
+  }
+  .poke-label {
+    background: rgba(0,0,0,0.82);
+    color: #fff;
+    font-family: var(--poke-font, 'Press Start 2P', monospace);
+    font-size: var(--poke-font-size, 13px);
+    font-weight: bold;
+    padding: 5px 13px;
+    border-radius: 8px;
+    margin-bottom: 6px;
+    white-space: nowrap;
+    max-width: 280px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-shadow: 2px 2px 0 #000, -1px -1px 0 #000;
+    border: 1px solid rgba(255,255,255,0.25);
+    letter-spacing: 0.5px;
+  }
+  .poke-sprite {
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    display: block;
+    filter: drop-shadow(2px 5px 6px rgba(0,0,0,0.65));
+  }
+  @keyframes walk {
+    0%,100% { transform: translateY(0px); }
+    25%      { transform: translateY(-5px); }
+    75%      { transform: translateY(-2px); }
+  }
+  .poke-sprite { animation: walk 0.34s ease-in-out infinite; }
+  @keyframes popIn {
+    0%   { opacity:0; transform: scale(0.2) translateY(30px); }
+    70%  { transform: scale(1.12) translateY(-5px); }
+    100% { opacity:1; transform: scale(1) translateY(0); }
+  }
+  @keyframes popOut {
+    0%   { opacity:1; transform: scale(1); }
+    100% { opacity:0; transform: scale(0.15) translateY(40px); }
+  }
+  .poke-actor.entering { animation: popIn  0.5s cubic-bezier(.34,1.56,.64,1) forwards; }
+  .poke-actor.leaving  { animation: popOut 0.45s ease-in forwards; }
+</style>
+<link id="gfontLink" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Orbitron:wght@700&family=Rajdhani:wght@700&family=Bangers&family=Fredoka+One&display=swap">
+</head>
+<body>
+<script>
+// CONFIG — actualizable dinámicamente desde la extensión
+let CFG = {
+  pokeEnabled:    true,
+  pokeTheme:      'pokemon',     // 'pokemon' | 'mortal_kombat' | 'helldivers' | 'street_fighter' | 'classic_games'
+  pokeTime:       120,           // segundos, máx 300 (5 min)
+  pokeSpeed:      2.2,           // px/frame horizontal
+  pokeMax:        8,
+  pokeSize:       128,           // px
+  pokeFontFamily: 'Press Start 2P',
+  pokeFontSize:   13,
+};
+
+const W = 1920, H = 1080;
+const POKEDEX = 898;
+const actors = new Map();
+const rnd    = (a, b) => Math.random() * (b - a) + a;
+const rndInt = (a, b) => Math.floor(rnd(a, b + 1));
+
+// Elimina emojis y caracteres especiales del nombre, deja solo texto legible
+function cleanUsername(name) {
+  return (name || '')
+    .replace(/[\u{1F000}-\u{1FFFF}]/gu, '')
+    .replace(/[\u{2600}-\u{27BF}]/gu, '')
+    .replace(/[\u{2300}-\u{23FF}]/gu, '')
+    .replace(/[\u{2B00}-\u{2BFF}]/gu, '')
+    .replace(/[\u{FE00}-\u{FEFF}]/gu, '')
+    .replace(/[\u{E0000}-\u{E007F}]/gu, '')
+    .replace(/\u200D/gu, '')
+    .replace(/\u20E3/gu, '')
+    .replace(/[#*0-9]\uFE0F?\u20E3/gu, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
+function applyFontCss() {
+  document.documentElement.style.setProperty('--poke-font', "'" + CFG.pokeFontFamily + "', monospace");
+  document.documentElement.style.setProperty('--poke-font-size', CFG.pokeFontSize + 'px');
+}
+
+// Y de caminado: franja inferior de la pantalla
+function getFloorY(size) {
+  const base = H - size - 8;
+  return base + (Math.random() * 24 - 12);
+}
+
+async function getPokemon(id) {
+  try {
+    const r = await fetch('https://pokeapi.co/api/v2/pokemon/' + id);
+    const d = await r.json();
+    const gif = d.sprites && d.sprites.versions && d.sprites.versions['generation-v'] &&
+                d.sprites.versions['generation-v']['black-white'] &&
+                d.sprites.versions['generation-v']['black-white'].animated &&
+                d.sprites.versions['generation-v']['black-white'].animated.front_default;
+    const png = d.sprites && d.sprites.front_default;
+    return { url: gif || png, name: d.name };
+  } catch(e) {
+    return {
+      url: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/' + id + '.png',
+      name: '#' + id
+    };
+  }
+}
+
+async function spawnActor(username) {
+  const id   = rndInt(1, POKEDEX);
+  const poke = await getPokemon(id);
+  const size = CFG.pokeSize;
+
+  // Entrar desde borde izquierdo o derecho, siempre en zona baja
+  const fromLeft = Math.random() < 0.5;
+  const x = fromLeft ? -size - 10 : W + 10;
+  const y = getFloorY(size);
+  const dx = fromLeft ? 1 : -1;
+
+  const actor = document.createElement('div');
+  actor.className = 'poke-actor entering';
+  actor.style.left = x + 'px';
+  actor.style.top  = y + 'px';
+
+  const label = document.createElement('div');
+  label.className = 'poke-label';
+  label.style.fontFamily = "'" + CFG.pokeFontFamily + "', monospace";
+  label.style.fontSize   = CFG.pokeFontSize + 'px';
+  label.textContent = cleanUsername(username) + ' \u2022 ' + poke.name;
+
+  const img = document.createElement('img');
+  img.className = 'poke-sprite';
+  img.width  = size;
+  img.height = size;
+  img.src = poke.url;
+  img.style.transform = dx < 0 ? 'scaleX(-1)' : 'scaleX(1)';
+
+  actor.appendChild(label);
+  actor.appendChild(img);
+  document.body.appendChild(actor);
+  setTimeout(function() { actor.classList.remove('entering'); }, 560);
+
+  return { actor, img, label, x, y, dx, alive: true, raf: null, timer: null, frames: 0 };
+}
+
+function startWalk(state) {
+  if (state.raf) cancelAnimationFrame(state.raf);
+
+  function step() {
+    if (!state.alive) return;
+    var speed = CFG.pokeSpeed;
+    var size  = CFG.pokeSize;
+
+    state.x += state.dx * speed;
+    state.frames++;
+
+    // Rebotar en bordes
+    if (state.x < 0)        { state.x = 0;        state.dx =  Math.abs(state.dx); }
+    if (state.x > W - size) { state.x = W - size;  state.dx = -Math.abs(state.dx); }
+
+    // Cambio de dirección aleatorio cada ~5-12 segundos
+    if (state.frames > 300 && Math.random() < 0.005) {
+      state.dx *= -1;
+      state.frames = 0;
+      // Suave variación vertical (terreno irregular)
+      var newY = getFloorY(size);
+      state.y  = state.y * 0.88 + newY * 0.12;
+    }
+
+    state.actor.style.left = Math.round(state.x) + 'px';
+    state.actor.style.top  = Math.round(state.y) + 'px';
+    state.img.style.transform = state.dx < 0 ? 'scaleX(-1)' : 'scaleX(1)';
+    state.raf = requestAnimationFrame(step);
+  }
+  state.raf = requestAnimationFrame(step);
+}
+
+function removeActor(username) {
+  var state = actors.get(username);
+  if (!state) return;
+  state.alive = false;
+  cancelAnimationFrame(state.raf);
+  clearTimeout(state.timer);
+  state.actor.classList.add('leaving');
+  setTimeout(function() { try { state.actor.remove(); } catch(e){} }, 560);
+  actors.delete(username);
+}
+
+async function onChatMessage(data) {
+  var username = data.username;
+  var cfg      = data.cfg;
+  if (!username) return;
+
+  if (cfg) {
+    const prevTheme = CFG.pokeTheme;
+    Object.assign(CFG, cfg);
+    applyFontCss();
+    // Si el tema cambió a algo diferente de pokémon, limpiar todos los actores
+    if (prevTheme === 'pokemon' && CFG.pokeTheme !== 'pokemon') {
+      Array.from(actors.keys()).forEach(removeActor);
+    }
+    // Actualizar fuente en actores existentes
+    actors.forEach(function(s) {
+      s.label.style.fontFamily = "'" + CFG.pokeFontFamily + "', monospace";
+      s.label.style.fontSize   = CFG.pokeFontSize + 'px';
+    });
+  }
+  if (!CFG.pokeEnabled) return;
+  // Bloquear si el tema activo NO es pokémon
+  if (CFG.pokeTheme !== 'pokemon') return;
+
+  var displayMs = Math.min(Math.max(CFG.pokeTime, 5), 300) * 1000;
+
+  if (actors.has(username)) {
+    var st = actors.get(username);
+    clearTimeout(st.timer);
+    if (Math.random() < 0.5) st.dx *= -1;
+    st.timer = setTimeout(function() { removeActor(username); }, displayMs);
+    st.actor.classList.add('entering');
+    setTimeout(function() { st.actor.classList.remove('entering'); }, 510);
+    return;
+  }
+
+  if (actors.size >= CFG.pokeMax) {
+    removeActor(actors.keys().next().value);
+  }
+
+  var state = await spawnActor(username);
+  actors.set(username, state);
+  startWalk(state);
+  state.timer = setTimeout(function() { removeActor(username); }, displayMs);
+}
+
+// WebSocket local
+(function connectWs() {
+  var ws;
+  function connect() {
+    try {
+      ws = new WebSocket('ws://localhost:7331');
+      ws.onmessage = function(e) {
+        try { var d = JSON.parse(e.data); if (d.type === 'tg_pokemon_chat') onChatMessage(d); } catch(err) {}
+      };
+      ws.onclose = function() { setTimeout(connect, 3000); };
+      ws.onerror = function() { try { ws.close(); } catch(er) {} };
+    } catch(ex) { setTimeout(connect, 3000); }
+  }
+  connect();
+})();
+
+// BroadcastChannel fallback
+try {
+  var bc = new BroadcastChannel('tg_pokemon');
+  bc.onmessage = function(e) { if (e.data && e.data.username) onChatMessage(e.data); };
+} catch(e) {}
+
+// Demo
+var NAMES = ['Ash','Misty','Brock','Gary','Serena','Chloe','Goh','Lana','Mallow','Kiawe'];
+document.addEventListener('keydown', function(e) {
+  if (e.key.toLowerCase() === 'p') {
+    var u = NAMES[rndInt(0, NAMES.length-1)] + rndInt(10,99);
+    onChatMessage({ username: u, message: 'test', type:'tg_pokemon_chat' });
+  }
+  if (e.key.toLowerCase() === 'r') {
+    Array.from(actors.keys()).forEach(removeActor);
+  }
+});
+
+applyFontCss();
+console.log('TanGhost Pokemon Overlay v13 — P: demo  R: reset  (zona inferior, horizontal)');
+</script>
+</body>
+</html>
